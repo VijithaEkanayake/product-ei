@@ -62,6 +62,13 @@
             <package name="org.wso2.carbon.esb.contenttype.json.*"/>
         </packages>
     </test-->
+
+    <test name="Content-Type-Test" preserve-order="true" verbose="2">
+        <classes>
+            <class name="org.wso2.carbon.esb.contenttype.json.XMLToJsonNilTestCase"/>
+        </classes>
+    </test>
+
     <test name="Mediation-Stat-Test" preserve-order="true" verbose="2">
         <packages>
             <package name="org.wso2.carbon.esb.mediationstats.*"/>
@@ -80,7 +87,7 @@
         </packages>
     </test>
 
-    <test name="Stats-Test" preserve-order="true" verbose="2" enabled="false">
+    <test name="Stats-Test" preserve-order="true" verbose="2">
         <packages>
             <package name="org.wso2.carbon.esb.statistics"/>
         </packages>
@@ -93,6 +100,12 @@
         </classes>
     </test>
 
+    <test name="Hot-Deployment-Test" preserve-order="true" verbose="2">
+        <packages>
+            <package name="org.wso2.carbon.esb.hotdeployment.test"/>
+        </packages>
+    </test>
+
     <test name="LocalEntry-Test" preserve-order="true" verbose="2">
         <packages>
             <package name="org.wso2.carbon.esb.localentry.test.*"/>
@@ -102,6 +115,12 @@
     <test name="logging-tests" preserve-order="true" verbose="2">
         <packages>
             <package name="org.wso2.carbon.esb.logging"/>
+        </packages>
+    </test>
+
+    <test name="library-service-tests" preserve-order="true" verbose="2">
+        <packages>
+            <package name="org.wso2.carbon.esb.connector.test" />
         </packages>
     </test>
 

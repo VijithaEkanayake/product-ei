@@ -131,6 +131,12 @@
         </packages>
     </test>
 
+    <test name="inbound-MQTT-Transport-Test" preserve-order="true" verbose="2">
+        <packages>
+            <package name="org.wso2.carbon.esb.mqtt.inbound.transport.test"/>
+        </packages>
+    </test>
+
     <!-- Kafka is not availble with framework-->
     <!--test name="inbound-KAFKA Transport-Test" preserve-order="true" verbose="2">
         <packages>
@@ -153,6 +159,12 @@
     <test name="Https Inbound Transport Test" preserve-order="true" verbose="2">
         <packages>
             <package name="org.wso2.carbon.esb.https.inbound.transport.test"/>
+        </packages>
+    </test>
+
+    <test name="WebSocket-Inbound-Test" preserve-order="true" verbose="2">
+        <packages>
+            <package name="org.wso2.carbon.esb.websocket.inbound.transport.test"/>
         </packages>
     </test>
 

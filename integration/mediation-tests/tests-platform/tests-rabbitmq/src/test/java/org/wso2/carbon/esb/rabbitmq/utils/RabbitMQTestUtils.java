@@ -34,6 +34,8 @@ import java.io.OutputStream;
 public class RabbitMQTestUtils {
 
     private static final Log log = LogFactory.getLog(RabbitMQTestUtils.class);
+    private static final long TIME_FOR_LOG_UPDATE = 5000;
+    private static final long TIME_FOR_MESSAGE_PUBLISH = 10000;
 
     private static final String RABBITMQ_HOME_XPATH = "//rabbitmq/rabbitmqhome";
 
@@ -116,4 +118,24 @@ public class RabbitMQTestUtils {
         String rabbitMQHome = automationContext.getConfigurationValue(RABBITMQ_HOME_XPATH);
         return rabbitMQHome;
     }
+
+    /**
+     * Helper method to be used to wait for logs to get updated after RabbitMQTests.
+     *
+     * @throws InterruptedException if the thread gets interrupted
+     */
+    public static void waitForLogToGetUpdated() throws InterruptedException {
+        Thread.sleep(TIME_FOR_LOG_UPDATE);
+
+    }
+
+    /**
+     * Helper method to be used to wait for messages to get published completely so that they can be consumed.
+     *
+     * @throws InterruptedException if the thread gets interrupted
+     */
+    public static void waitForMssagesToGetPublished() throws InterruptedException {
+        Thread.sleep(TIME_FOR_MESSAGE_PUBLISH);
+    }
+
 }

@@ -36,6 +36,7 @@ import org.wso2.carbon.endpoint.stub.types.EndpointAdminEndpointAdminException;
 import org.wso2.carbon.inbound.stub.types.carbon.InboundEndpointDTO;
 import org.wso2.carbon.localentry.stub.types.LocalEntryAdminException;
 import org.wso2.carbon.mediation.library.stub.MediationLibraryAdminServiceException;
+import org.wso2.carbon.mediation.library.stub.types.carbon.LibraryInfo;
 import org.wso2.carbon.mediation.library.stub.upload.types.carbon.LibraryFileItem;
 import org.wso2.carbon.proxyadmin.stub.ProxyServiceAdminProxyAdminException;
 import org.wso2.carbon.rest.api.stub.RestApiAdminAPIException;
@@ -58,6 +59,7 @@ import org.wso2.esb.integration.common.clients.template.EndpointTemplateAdminSer
 import org.wso2.esb.integration.common.clients.template.SequenceTemplateAdminServiceClient;
 import org.wso2.esb.integration.common.utils.common.TestConfigurationProvider;
 
+import javax.activation.DataHandler;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLInputFactory;
@@ -97,6 +99,7 @@ public class ESBTestCaseUtils {
 	private static final String KEY = "key";
 	private static final String NAME = "name";
 	private static final String TASK = "task";
+	private static final String INBOUND_ENDPOINT = "inboundEndpoint";
 
 
 	/**
@@ -227,6 +230,7 @@ public class ESBTestCaseUtils {
         RestApiAdminClient apiAdminClient = new RestApiAdminClient(backendURL, sessionCookie);
         PriorityMediationAdminClient priorityMediationAdminClient = new PriorityMediationAdminClient(backendURL, sessionCookie);
         TaskAdminClient taskAdminClient = new TaskAdminClient(backendURL, sessionCookie);
+        InboundAdminClient inboundAdminClient = new InboundAdminClient(backendURL, sessionCookie);
 
         Iterator<OMElement> localEntries = synapseConfig.getChildrenWithLocalName(LOCAL_ENTRY);
         while (localEntries.hasNext()) {
@@ -374,6 +378,18 @@ public class ESBTestCaseUtils {
             log.info(taskName + " Task Uploaded");
         }
 
+        Iterator<OMElement> inboundEndpoints = synapseConfig.getChildrenWithLocalName(INBOUND_ENDPOINT);
+        while (inboundEndpoints.hasNext()) {
+            OMElement inboundEndpoint = inboundEndpoints.next();
+            String inboundEP = inboundEndpoint.getAttributeValue(new QName(NAME));
+            if (ArrayUtils.contains(inboundAdminClient.getAllInboundEndpointNames(), inboundEP)) {
+                Assert.fail("Inbound Endpoint already exist " + inboundEP + ". Use different name");
+            }
+            inboundAdminClient.addInboundEndpoint(inboundEndpoint.toString());
+            isInboundEndpointDeployed(backendURL, sessionCookie, inboundEP);
+            log.info(inboundEP + " Inbound endpoint Uploaded");
+        }
+
         Thread.sleep(1000);
         verifySynapseDeployment(synapseConfig, backendURL, sessionCookie);
         log.info("Synapse configuration  Deployed");
@@ -491,7 +507,7 @@ public class ESBTestCaseUtils {
 	 * @param name          name of the inbound Endpoint
 	 * @throws Exception If an error occurs while checking for inbound
 	 */
-	public void isInboundEndpointDeployed(String backEndUrl, String sessionCookie, String name) throws Exception {
+	public boolean isInboundEndpointDeployed(String backEndUrl, String sessionCookie, String name) throws Exception {
 		InboundAdminClient inboundAdmin = new InboundAdminClient(backEndUrl, sessionCookie);
 		InboundEndpointDTO inboundEndpointDTO = null;
 		log.info("waiting " + SERVICE_DEPLOYMENT_DELAY + " millis for Inbound Endpoint " + name);
@@ -511,23 +527,45 @@ public class ESBTestCaseUtils {
 				//ignore
 			}
 		}
-		Assert.assertNotNull(inboundEndpointDTO);
+		return inboundEndpointDTO != null;
 	}
 
-	public void isInboundEndpointUndeployed(String backEndUrl, String sessionCookie, String name)
+	public boolean isInboundEndpointUndeployed(String backEndUrl, String sessionCookie, String name)
+			throws Exception {
+		InboundAdminClient inboundAdmin = new InboundAdminClient(backEndUrl, sessionCookie);
+		InboundEndpointDTO inboundEndpointDTO = null;
+		log.info("waiting " + SERVICE_DEPLOYMENT_DELAY + " millis for Inbound Endpoint undeployment" + name);
+		Calendar startTime = Calendar.getInstance();
+		long time;
+
+		while ((time = (Calendar.getInstance().getTimeInMillis() - startTime.getTimeInMillis())) <
+				SERVICE_DEPLOYMENT_DELAY) {
+			inboundEndpointDTO = inboundAdmin.getInboundEndpointbyName(name);
+			if (inboundEndpointDTO == null) {
+				log.info(name + "Inbound Endpoint Undeploy in " + time + " millis");
+				break;
+			}
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				//ignore
+			}
+		}
+		return inboundEndpointDTO == null;
+	}
+
+	public boolean isInboundEndpointExist(String backEndUrl, String sessionCookie, String name)
 			throws Exception {
 		InboundAdminClient inboundAdmin = new InboundAdminClient(backEndUrl, sessionCookie);
 		InboundEndpointDTO inboundEndpointDTO = inboundAdmin.getInboundEndpointbyName(name);
-		Assert.assertNull(inboundEndpointDTO);
+		return inboundEndpointDTO != null;
 	}
 
-
-	public void deleteInboundEndpointDeployed(String backEndUrl, String sessionCookie, String name)
-			throws Exception {
+	public void deleteInboundEndpointDeployed(String backEndUrl, String sessionCookie, String name) throws Exception {
 		InboundAdminClient inboundAdmin = new InboundAdminClient(backEndUrl, sessionCookie);
 		inboundAdmin.removeInboundEndpoint(name);
-		InboundEndpointDTO inboundEndpointDTO = inboundAdmin.getInboundEndpointbyName(name);
-		Assert.assertNull(inboundEndpointDTO);
+		Assert.assertTrue(isInboundEndpointUndeployed(backEndUrl, sessionCookie, name),
+				"Inbound Endpoint Undeployment failed.");
 	}
 
 	public InboundEndpointDTO[] getAllInboundEndpoints(String backEndUrl, String sessionCookie)
@@ -551,6 +589,90 @@ public class ESBTestCaseUtils {
 
 	}
 
+    /**
+     * Add import to synapse context
+     * @param backEndUrl
+     * @param sessionCookie
+     * @param libName
+     * @param packageName
+     * @throws RemoteException
+     */
+    public void addImport(String backEndUrl, String sessionCookie, String libName, String packageName)
+            throws RemoteException {
+        MediationLibraryAdminServiceClient mediationLibraryAdminServiceClient = new MediationLibraryAdminServiceClient(
+                backEndUrl, sessionCookie);
+        mediationLibraryAdminServiceClient.addImport(libName, packageName);
+    }
+
+    /**
+     * Get import of a particular library qualified name
+     * @param backEndUrl
+     * @param sessionCookie
+     * @param qualifiedName
+     * @throws RemoteException
+     */
+    public String getImport(String backEndUrl, String sessionCookie, String qualifiedName) throws RemoteException {
+        MediationLibraryAdminServiceClient mediationLibraryAdminServiceClient = new MediationLibraryAdminServiceClient(
+                backEndUrl, sessionCookie);
+        return mediationLibraryAdminServiceClient.getImport(qualifiedName);
+    }
+
+    /**
+     * Return the list of library information
+     * @param backEndUrl
+     * @param sessionCookie
+     * @return
+     * @throws RemoteException
+     */
+    public LibraryInfo[] getAllLibraryInfo(String backEndUrl, String sessionCookie) throws RemoteException {
+        MediationLibraryAdminServiceClient mediationLibraryAdminServiceClient = new MediationLibraryAdminServiceClient(
+                backEndUrl, sessionCookie);
+        return mediationLibraryAdminServiceClient.getAllLibraryInfo();
+    }
+
+    /**
+     * Return all the libraries
+     * @param backEndUrl
+     * @param sessionCookie
+     * @return
+     * @throws RemoteException
+     */
+    public String[] getAllLibraries(String backEndUrl, String sessionCookie) throws RemoteException {
+        MediationLibraryAdminServiceClient mediationLibraryAdminServiceClient = new MediationLibraryAdminServiceClient(
+                backEndUrl, sessionCookie);
+        return mediationLibraryAdminServiceClient.getAllLibraries();
+    }
+
+    /**
+     * Delete import of a library
+     * @param backEndUrl
+     * @param sessionCookie
+     * @param importQualifiedName
+     * @throws RemoteException
+     */
+    public void deleteImport(String backEndUrl, String sessionCookie, String importQualifiedName)
+            throws RemoteException {
+        MediationLibraryAdminServiceClient mediationLibraryAdminServiceClient = new MediationLibraryAdminServiceClient(
+                backEndUrl, sessionCookie);
+        mediationLibraryAdminServiceClient.deleteImport(importQualifiedName);
+    }
+
+    /**
+     * Return library artifact information
+     * @param backEndUrl
+     * @param sessionCookie
+     * @param libName
+     * @param packageName
+     * @return
+     * @throws RemoteException
+     */
+    public LibraryInfo getLibraryInfo(String backEndUrl, String sessionCookie, String libName, String packageName)
+            throws RemoteException {
+        MediationLibraryAdminServiceClient mediationLibraryAdminServiceClient = new MediationLibraryAdminServiceClient(
+                backEndUrl, sessionCookie);
+        return mediationLibraryAdminServiceClient.getLibraryInfo(libName, packageName);
+    }
+
 	/**
 	 * Update connector status
 	 * @param backEndUrl
@@ -568,7 +690,24 @@ public class ESBTestCaseUtils {
 		mediationLibraryAdminServiceClient.updateStatus(libQName,libName,packageName,status);
 	}
 
-	/**
+    /**
+     * Download connector archive
+     *
+     * @param backEndUrl
+     * @param sessionCookie
+     * @param fileName
+     * @return
+     * @throws RemoteException
+     * @throws MediationLibraryAdminServiceException
+     */
+    public DataHandler downloadLibraryArchive(String backEndUrl, String sessionCookie, String fileName)
+            throws RemoteException, MediationLibraryAdminServiceException {
+        MediationLibraryAdminServiceClient mediationLibraryAdminServiceClient = new MediationLibraryAdminServiceClient(
+                backEndUrl, sessionCookie);
+        return mediationLibraryAdminServiceClient.downloadLibraryArchive(fileName);
+    }
+
+    /**
 	 * Provide All Imports
 	 * @param backEndUrl
 	 * @param sessionCookie
@@ -1810,15 +1949,63 @@ public class ESBTestCaseUtils {
 		MessageStoreAdminClient messageStoreAdminClient = new MessageStoreAdminClient(backendURL, sessionCookie);
 		ServiceAdminClient adminServiceService = new ServiceAdminClient(backendURL, sessionCookie);
 		RestApiAdminClient apiAdminClient = new RestApiAdminClient(backendURL, sessionCookie);
-		PriorityMediationAdminClient priorityMediationAdminClient = new PriorityMediationAdminClient(backendURL, sessionCookie);
+		PriorityMediationAdminClient priorityMediationAdminClient = new PriorityMediationAdminClient(backendURL,
+				sessionCookie);
+		InboundAdminClient inboundAdminClient = new InboundAdminClient(backendURL, sessionCookie);
+
+		Iterator<OMElement> inboundEntries = synapseConfig.getChildrenWithLocalName(INBOUND_ENDPOINT);
+		while (inboundEntries.hasNext()) {
+			OMElement inboundEntry = inboundEntries.next();
+			String inbound = inboundEntry.getAttributeValue(new QName(NAME));
+			if (inboundAdminClient.getInboundEndpointbyName(inbound) != null) {
+				inboundAdminClient.removeInboundEndpoint(inbound);
+				Assert.assertTrue(isInboundEndpointUndeployed(backendURL, sessionCookie, inbound),
+						inbound + " Inbound undeployment failed");
+			}
+		}
+
+		Iterator<OMElement> messageProcessors = synapseConfig.getChildrenWithLocalName(MESSAGE_PROCESSOR);
+		while (messageProcessors.hasNext()) {
+			OMElement messageProcessor = messageProcessors.next();
+			String mProcessor = messageProcessor.getAttributeValue(new QName(NAME));
+			if (ArrayUtils.contains(messageProcessorClient.getMessageProcessorNames(), mProcessor)) {
+				messageProcessorClient.deleteMessageProcessor(mProcessor);
+				Assert.assertTrue(isMessageProcessorUnDeployed(backendURL, sessionCookie, mProcessor),
+						mProcessor + " Message Processor undeployment failed");
+			}
+		}
+
+		Iterator<OMElement> apiList = synapseConfig.getChildrenWithLocalName(API);
+		while (apiList.hasNext()) {
+			OMElement api = apiList.next();
+			String apiName = api.getAttributeValue(new QName(NAME));
+			if (ArrayUtils.contains(apiAdminClient.getApiNames(), apiName)) {
+				apiAdminClient.deleteApi(apiName);
+				Assert.assertTrue(isApiUnDeployed(backendURL, sessionCookie, apiName),
+						apiName + " API undeployment failed");
+			}
+		}
+
+		Iterator<OMElement> proxies = synapseConfig.getChildrenWithLocalName(PROXY);
+		while (proxies.hasNext()) {
+			OMElement proxy = proxies.next();
+			String proxyName = proxy.getAttributeValue(new QName(NAME));
+			if (adminServiceService.isServiceExists(proxyName)) {
+				proxyAdmin.deleteProxy(proxyName);
+				Assert.assertTrue(isProxyUnDeployed(backendURL, sessionCookie, proxyName),
+						proxyName + " Undeployment failed");
+			}
+		}
 
 		Iterator<OMElement> localEntries = synapseConfig.getChildrenWithLocalName(LOCAL_ENTRY);
 		while (localEntries.hasNext()) {
 			OMElement localEntry = localEntries.next();
 			String le = localEntry.getAttributeValue(new QName(KEY));
 			if (ArrayUtils.contains(localEntryAdminServiceClient.getEntryNames(), le)) {
-				Assert.assertTrue(localEntryAdminServiceClient.deleteLocalEntry(le), le + " Local Entry deletion failed");
-				Assert.assertTrue(isLocalEntryUnDeployed(backendURL, sessionCookie, le), le + " Local Entry undeployment failed");
+				Assert.assertTrue(localEntryAdminServiceClient.deleteLocalEntry(le),
+						le + " Local Entry deletion failed");
+				Assert.assertTrue(isLocalEntryUnDeployed(backendURL, sessionCookie, le),
+						le + " Local Entry undeployment failed");
 			}
 		}
 
@@ -1828,7 +2015,8 @@ public class ESBTestCaseUtils {
 			String ep = endpoint.getAttributeValue(new QName(NAME));
 			if (ArrayUtils.contains(endPointAdminClient.getEndpointNames(), ep)) {
 				Assert.assertTrue(endPointAdminClient.deleteEndpoint(ep), ep + " Endpoint deletion failed");
-				Assert.assertTrue(isEndpointUnDeployed(backendURL, sessionCookie, ep), ep + " Endpoint undeployment failed");
+				Assert.assertTrue(isEndpointUnDeployed(backendURL, sessionCookie, ep),
+						ep + " Endpoint undeployment failed");
 			}
 		}
 
@@ -1841,19 +2029,10 @@ public class ESBTestCaseUtils {
 			}
 			if (ArrayUtils.contains(sequenceAdminClient.getSequences(), sqn)) {
 				sequenceAdminClient.deleteSequence(sqn);
-				Assert.assertTrue(isSequenceUnDeployed(backendURL, sessionCookie, sqn), sqn + " Sequence undeployment failed");
+				Assert.assertTrue(isSequenceUnDeployed(backendURL, sessionCookie, sqn),
+						sqn + " Sequence undeployment failed");
 			}
 
-		}
-
-		Iterator<OMElement> proxies = synapseConfig.getChildrenWithLocalName(PROXY);
-		while (proxies.hasNext()) {
-			OMElement proxy = proxies.next();
-			String proxyName = proxy.getAttributeValue(new QName(NAME));
-			if (adminServiceService.isServiceExists(proxyName)) {
-				proxyAdmin.deleteProxy(proxyName);
-				Assert.assertTrue(isProxyUnDeployed(backendURL, sessionCookie, proxyName), proxyName + " Undeployment failed");
-			}
 		}
 
 		Iterator<OMElement> messageStores = synapseConfig.getChildrenWithLocalName(MESSAGE_STORE);
@@ -1862,18 +2041,8 @@ public class ESBTestCaseUtils {
 			String mStore = messageStore.getAttributeValue(new QName(NAME));
 			if (ArrayUtils.contains(messageStoreAdminClient.getMessageStores(), mStore)) {
 				messageStoreAdminClient.deleteMessageStore(mStore);
-				Assert.assertTrue(isMessageStoreUnDeployed(backendURL, sessionCookie, mStore), mStore + " Message Store undeployment failed");
-			}
-		}
-
-		Iterator<OMElement> messageProcessors = synapseConfig.getChildrenWithLocalName(MESSAGE_PROCESSOR);
-		while (messageProcessors.hasNext()) {
-			OMElement messageProcessor = messageProcessors.next();
-			String mProcessor = messageProcessor.getAttributeValue(new QName(NAME));
-			if (ArrayUtils.contains(messageProcessorClient.getMessageProcessorNames(), mProcessor)) {
-				messageProcessorClient.deleteMessageProcessor(mProcessor);
-				Assert.assertTrue(isMessageProcessorUnDeployed(backendURL, sessionCookie, mProcessor)
-						, mProcessor + " Message Processor undeployment failed");
+				Assert.assertTrue(isMessageStoreUnDeployed(backendURL, sessionCookie, mStore),
+						mStore + " Message Store undeployment failed");
 			}
 		}
 
@@ -1881,7 +2050,8 @@ public class ESBTestCaseUtils {
 		while (templates.hasNext()) {
 			OMElement template = templates.next();
 			String templateName = template.getAttributeValue(new QName(NAME));
-			if (template.getFirstChildWithName(new QName(template.getNamespace().getNamespaceURI(), SEQUENCE)) != null) {
+			if (template.getFirstChildWithName(new QName(template.getNamespace().getNamespaceURI(), SEQUENCE))
+					!= null) {
 				deleteSequenceTemplate(backendURL, sessionCookie, templateName);
 
 			} else {
@@ -1890,25 +2060,14 @@ public class ESBTestCaseUtils {
 			log.info("Template UnUploaded");
 		}
 
-		Iterator<OMElement> apiList = synapseConfig.getChildrenWithLocalName(API);
-		while (apiList.hasNext()) {
-			OMElement api = apiList.next();
-			String apiName = api.getAttributeValue(new QName(NAME));
-			if (ArrayUtils.contains(apiAdminClient.getApiNames(), apiName)) {
-				apiAdminClient.deleteApi(apiName);
-				Assert.assertTrue(isApiUnDeployed(backendURL, sessionCookie, apiName)
-						, apiName + " API undeployment failed");
-			}
-		}
-
 		Iterator<OMElement> executorList = synapseConfig.getChildrenWithLocalName(PRIORITY_EXECUTOR);
 		while (executorList.hasNext()) {
 			OMElement executor = executorList.next();
 			String executorName = executor.getAttributeValue(new QName(NAME));
 			if (ArrayUtils.contains(priorityMediationAdminClient.getExecutorList(), executorName)) {
 				priorityMediationAdminClient.remove(executorName);
-				Assert.assertTrue(isPriorityExecutorUnDeployed(backendURL, sessionCookie, executorName)
-						, executorName + " Priority Executor undeployment failed");
+				Assert.assertTrue(isPriorityExecutorUnDeployed(backendURL, sessionCookie, executorName),
+						executorName + " Priority Executor undeployment failed");
 			}
 		}
 

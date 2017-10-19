@@ -51,3 +51,6 @@ synapse-fix-transport_
 synapse-nhttp-transport_
 synapse-tasks_
 synapse-vfs-transport_
+org.wso2.carbon.mediator.transform_
+org.apache.axis2.transport.rabbitmq_
+axis2-transport-rabbitmq-amqp_2.0.0_

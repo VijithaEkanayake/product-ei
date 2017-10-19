@@ -27,12 +27,12 @@ import org.wso2.carbon.sequences.stub.types.SequenceEditorException;
 import org.wso2.carbon.sequences.stub.types.common.to.SequenceInfo;
 import org.wso2.esb.integration.common.clients.client.utils.AuthenticateStub;
 
+import java.io.IOException;
+import java.rmi.RemoteException;
 import javax.activation.DataHandler;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import java.io.IOException;
-import java.rmi.RemoteException;
 
 public class SequenceAdminServiceClient {
     private static final Log log = LogFactory.getLog(SequenceAdminServiceClient.class);
@@ -46,8 +46,7 @@ public class SequenceAdminServiceClient {
         AuthenticateStub.authenticateStub(sessionCookie, sequenceAdminServiceStub);
     }
 
-    public SequenceAdminServiceClient(String backEndUrl, String userName, String password)
-            throws AxisFault {
+    public SequenceAdminServiceClient(String backEndUrl, String userName, String password) throws AxisFault {
         String endPoint = backEndUrl + serviceName;
         sequenceAdminServiceStub = new SequenceAdminServiceStub(endPoint);
         AuthenticateStub.authenticateStub(userName, password, sequenceAdminServiceStub);
@@ -61,8 +60,7 @@ public class SequenceAdminServiceClient {
      * @throws java.io.IOException
      * @throws javax.xml.stream.XMLStreamException
      */
-    public void addSequence(DataHandler dh)
-            throws SequenceEditorException, IOException, XMLStreamException {
+    public void addSequence(DataHandler dh) throws SequenceEditorException, IOException, XMLStreamException {
 
         XMLStreamReader parser = XMLInputFactory.newInstance().createXMLStreamReader(dh.getInputStream());
         //create the builder
@@ -101,8 +99,7 @@ public class SequenceAdminServiceClient {
      * @throws SequenceEditorException
      * @throws java.rmi.RemoteException
      */
-    public void addDynamicSequence(String key, OMElement omElement)
-            throws SequenceEditorException, RemoteException {
+    public void addDynamicSequence(String key, OMElement omElement) throws SequenceEditorException, RemoteException {
         sequenceAdminServiceStub.addDynamicSequence(key, omElement);
 
     }
@@ -115,8 +112,7 @@ public class SequenceAdminServiceClient {
      * @throws SequenceEditorException
      * @throws java.rmi.RemoteException
      */
-    public OMElement getSequence(String sequenceName)
-            throws SequenceEditorException, RemoteException {
+    public OMElement getSequence(String sequenceName) throws SequenceEditorException, RemoteException {
         return sequenceAdminServiceStub.getSequence(sequenceName);
 
     }
@@ -128,8 +124,7 @@ public class SequenceAdminServiceClient {
      * @throws SequenceEditorException
      * @throws java.rmi.RemoteException
      */
-    public void deleteSequence(String sequenceName)
-            throws SequenceEditorException, RemoteException {
+    public void deleteSequence(String sequenceName) throws SequenceEditorException, RemoteException {
         sequenceAdminServiceStub.deleteSequence(sequenceName);
 
     }
@@ -154,8 +149,7 @@ public class SequenceAdminServiceClient {
      * @throws SequenceEditorException
      * @throws java.rmi.RemoteException
      */
-    public int getDynamicSequenceCount()
-            throws SequenceEditorException, RemoteException {
+    public int getDynamicSequenceCount() throws SequenceEditorException, RemoteException {
         return sequenceAdminServiceStub.getDynamicSequenceCount();
     }
 
@@ -166,8 +160,7 @@ public class SequenceAdminServiceClient {
      * @throws SequenceEditorException
      * @throws java.rmi.RemoteException
      */
-    public void deleteDynamicSequence(String key)
-            throws SequenceEditorException, RemoteException {
+    public void deleteDynamicSequence(String key) throws SequenceEditorException, RemoteException {
         sequenceAdminServiceStub.deleteDynamicSequence(key);
     }
 
@@ -185,6 +178,30 @@ public class SequenceAdminServiceClient {
         return sequenceAdminServiceStub.getSequences(pageNo, sequencePerPage);
     }
 
+    public boolean isExistingSequence(String name) throws SequenceEditorException, RemoteException {
+        return sequenceAdminServiceStub.isExistingSequence(name);
+    }
+
+    public boolean isExistingSequenceForTenant(String name, String tenant)
+            throws SequenceEditorException, RemoteException {
+        return sequenceAdminServiceStub.isExistingSequenceForTenant(name, tenant);
+    }
+
+    public void addSequenceForTenant(OMElement sequence, String tenant)
+            throws SequenceEditorException, RemoteException {
+        sequenceAdminServiceStub.addSequenceForTenant(sequence, tenant);
+    }
+
+    public OMElement getSequenceForTenant(String sequence, String tenant)
+            throws SequenceEditorException, RemoteException {
+        return sequenceAdminServiceStub.getSequenceForTenant(sequence, tenant);
+    }
+
+    public void deleteSequenceForTenant(String sequence, String tenant)
+            throws SequenceEditorException, RemoteException {
+        sequenceAdminServiceStub.deleteSequenceForTenant(sequence, tenant);
+    }
+
     /**
      * getting sequence list
      *
@@ -192,8 +209,7 @@ public class SequenceAdminServiceClient {
      * @throws SequenceEditorException
      * @throws java.rmi.RemoteException
      */
-    public String[] getSequences()
-            throws SequenceEditorException, RemoteException {
+    public String[] getSequences() throws SequenceEditorException, RemoteException {
         SequenceInfo[] info = sequenceAdminServiceStub.getSequences(0, 200);
         String[] sequences;
 
@@ -229,4 +245,29 @@ public class SequenceAdminServiceClient {
         }
         return sequences;
     }
-}
+
+    public OMElement getDynamicSequence(String key) throws SequenceEditorException, RemoteException {
+        return sequenceAdminServiceStub.getDynamicSequence(key);
+    }
+
+    public int getSequenceCount() throws SequenceEditorException, RemoteException{
+        return sequenceAdminServiceStub.getSequencesCount();
+    }
+
+    public void enableStatistics(String name) throws SequenceEditorException, RemoteException {
+        sequenceAdminServiceStub.enableStatistics(name);
+    }
+
+    public void disableStatistics(String name) throws SequenceEditorException, RemoteException {
+        sequenceAdminServiceStub.disableStatistics(name);
+    }
+
+    public void enableTracing(String name) throws SequenceEditorException, RemoteException {
+        sequenceAdminServiceStub.enableTracing(name);
+    }
+
+    public void disableTracing(String name) throws SequenceEditorException, RemoteException {
+        sequenceAdminServiceStub.disableTracing(name);
+    }
+
+    }
