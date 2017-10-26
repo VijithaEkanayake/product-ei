@@ -96,11 +96,11 @@ function drawMergeView(placeholder, before, after) {
         after = formatXML(after);
     }
     view.innerHTML = "";
-      var dv = CodeMirror.MergeView(view, {
-        value: before,
-        origLeft: after,
+    var dv = CodeMirror.MergeView(view, {
+        value: after,
+        origLeft: before,
         lineNumbers: true,
-        theme:"ambiance",
+        theme: "ambiance",
         highlightDifferences: true,
         connect: "connect"
     });
